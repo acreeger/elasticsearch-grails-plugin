@@ -103,7 +103,15 @@ class JSONDomainFactory {
             if (DomainClassArtefactHandler.isDomainClass(objectClass)) {
                 /*def domainClassName = objectClass.simpleName.substring(0,1).toLowerCase() + objectClass.simpleName.substring(1)
              SearchableClassPropertyMapping propMap = elasticSearchContextHolder.getMappingContext(domainClassName).getPropertyMapping(marshallingContext.lastParentPropertyName)*/
-                marshaller = new DeepDomainClassMarshaller()
+                def domainClass = getDomainClass(object)
+                def mappingContextOfChildObject = elasticSearchContextHolder.getMappingContext(domainClass)
+                if (mappingContextOfChildObject?.root) {
+                    //def propertyMapping = elasticSearchContextHolder.getMappingContext(objectClass)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
+                    def refClass = objectClass //propertyMapping.getBestGuessReferenceType()
+                    marshaller = new SearchableReferenceMarshaller(refClass:refClass)
+                } else {
+                    marshaller = new DeepDomainClassMarshaller()
+                }
             } else {
                 // Check for inherited marshaller matching
                 def inheritedMarshaller = DEFAULT_MARSHALLERS.find { key, value -> key.isAssignableFrom(objectClass)}

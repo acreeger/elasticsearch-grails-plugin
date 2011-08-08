@@ -176,19 +176,10 @@ public class DomainClassUnmarshaller {
 
             if (data.containsKey("class")) {
                 // Embedded instance.
-                if (!scpm.isComponent()) {
-                    // maybe ignore?
-                    throw new IllegalStateException("Property " + domainClass.getName() + "." + propertyName +
-                                " is not mapped as [component], but broken search hit found.");
-                }
                 GrailsDomainClass nestedDomainClass = (GrailsDomainClass)
                         grailsApplication.getArtefact(DomainClassArtefactHandler.TYPE, (String) data.get("class"));
                 if (domainClass != null) {
                     // Unmarshall 'component' instance.
-                    if (!scpm.isComponent()) {
-                        throw new IllegalStateException("Object " + data.get("class") +
-                                " found in index, but [" + propertyName + "] is not mapped as component.");
-                    }
                     parseResult = unmarshallDomain(nestedDomainClass, data.get("id"), data, unmarshallingContext);
                 }
             }
