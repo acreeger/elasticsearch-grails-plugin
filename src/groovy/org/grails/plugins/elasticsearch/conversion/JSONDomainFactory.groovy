@@ -32,6 +32,7 @@ import org.grails.plugins.elasticsearch.conversion.marshall.PropertyEditorMarsha
 import org.grails.plugins.elasticsearch.conversion.marshall.Marshaller
 import org.grails.plugins.elasticsearch.conversion.marshall.SearchableReferenceMarshaller
 import org.codehaus.groovy.grails.orm.hibernate.cfg.GrailsHibernateUtil
+import org.apache.log4j.Logger
 
 /**
  * Marshall objects as JSON.
@@ -40,6 +41,7 @@ class JSONDomainFactory {
 
     def elasticSearchContextHolder
 
+    static LOG = Logger.getLogger(JSONDomainFactory.class)
     /**
      * The default marshallers, not defined by user
      */
@@ -90,8 +92,10 @@ class JSONDomainFactory {
                     }
                 } else if (propertyMapping?.reference) {
                     def refClass = propertyMapping.getBestGuessReferenceType()
+                    LOG.trace "delegateMarshalling ($objectClass): We have a reference to: $refClass, using a SearchableReferenceMarshaller"
                     marshaller = new SearchableReferenceMarshaller(refClass:refClass)
                 } else if (propertyMapping?.component) {
+                    LOG.trace "delegateMarshalling ($objectClass): We have a component, using a DeepDomainClassMarshaller";
                     marshaller = new DeepDomainClassMarshaller()
                 }
             }
@@ -108,8 +112,10 @@ class JSONDomainFactory {
                 if (mappingContextOfChildObject?.root) {
                     //def propertyMapping = elasticSearchContextHolder.getMappingContext(objectClass)?.getPropertyMapping(marshallingContext.lastParentPropertyName)
                     def refClass = objectClass //propertyMapping.getBestGuessReferenceType()
+                    LOG.trace "delegateMarshalling ($objectClass): object is a root-mapped domain class. using SearchableReferenceMarshaller using a refClass of $refClass"
                     marshaller = new SearchableReferenceMarshaller(refClass:refClass)
                 } else {
+                    LOG.trace "delegateMarshalling ($objectClass): object is a non root-mapped domain class. using DeepDomainClassMarshaller."
                     marshaller = new DeepDomainClassMarshaller()
                 }
             } else {
@@ -117,8 +123,10 @@ class JSONDomainFactory {
                 def inheritedMarshaller = DEFAULT_MARSHALLERS.find { key, value -> key.isAssignableFrom(objectClass)}
                 if (inheritedMarshaller) {
                     marshaller = DEFAULT_MARSHALLERS[inheritedMarshaller.key].newInstance()
-                    // If no marshaller was found, use the default one
+                    LOG.trace "delegateMarshalling ($objectClass): Found a marshaller from $objectClass: ${marshaller.class}"
                 } else {
+                    // If no marshaller was found, use the default one
+                    LOG.trace "delegateMarshalling ($objectClass): Could not find a marshaller. Using a DefaultMarshaller."
                     marshaller = new DefaultMarshaller()
                 }
             }
