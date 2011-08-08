@@ -95,4 +95,16 @@ public class SearchableClassMapping {
     public boolean isAll() {
         return all;
     }
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer("SearchableClassMapping{domainClass:" + domainClass.getName() +
+                ", all: " + all + ", root: " + root +
+                ", propertiesMapping: [\n"
+        );
+        for(SearchableClassPropertyMapping scpm : propertiesMapping) {
+            sb.append("\t" + scpm.toString() + ",\n");
+        }
+        sb.append("]}");
+        return sb.toString();
+    }
 }

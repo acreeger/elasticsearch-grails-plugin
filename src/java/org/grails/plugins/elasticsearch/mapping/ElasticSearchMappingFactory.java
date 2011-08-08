@@ -15,6 +15,7 @@
  */
 package org.grails.plugins.elasticsearch.mapping;
 
+import org.apache.log4j.Logger;
 import org.codehaus.groovy.grails.commons.GrailsClassUtils;
 import org.grails.plugins.elasticsearch.ElasticSearchContextHolder;
 import org.springframework.util.ClassUtils;
@@ -30,6 +31,8 @@ public class ElasticSearchMappingFactory {
             "string", "integer", "long", "float", "double", "boolean", "null", "date"));
 
     private static Class JODA_TIME_BASE;
+
+    private static Logger LOG = Logger.getLogger(ElasticSearchMappingFactory.class);
 
     static {
         try {
@@ -125,6 +128,7 @@ public class ElasticSearchMappingFactory {
         mapping.put(scm.getElasticTypeName(),
                 Collections.singletonMap("properties", elasticTypeMappingProperties));
 
+        LOG.trace("getElasticMapping: Returning: " + mapping);
         return mapping;
     }
 
