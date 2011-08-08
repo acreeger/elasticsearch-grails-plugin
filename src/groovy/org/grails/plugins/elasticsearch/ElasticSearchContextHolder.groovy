@@ -20,7 +20,7 @@ class ElasticSearchContextHolder {
      * @param scm The SearchableClassMapping instance to add
      */
     public void addMappingContext(SearchableClassMapping scm) {
-        mapping[scm.domainClass.fullName] = scm
+        mapping[scm.domainClass.fullName.toLowerCase()] = scm
     }
 
     /**
@@ -29,7 +29,7 @@ class ElasticSearchContextHolder {
      * @return
      */
     SearchableClassMapping getMappingContext(String type) {
-        mapping[type]
+        mapping[type.toLowerCase()]
     }
 
     /**
@@ -38,7 +38,7 @@ class ElasticSearchContextHolder {
      * @return
      */
     SearchableClassMapping getMappingContext(GrailsDomainClass domainClass) {
-        mapping[domainClass.fullName]
+        mapping[domainClass.fullName.toLowerCase()]
     }
 
     /**
