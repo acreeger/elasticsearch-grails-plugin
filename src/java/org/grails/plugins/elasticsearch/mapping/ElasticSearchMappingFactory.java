@@ -52,62 +52,66 @@ public class ElasticSearchMappingFactory {
         // Map each domain properties in supported format, or object for complex type
         for(SearchableClassPropertyMapping scpm : scm.getPropertiesMapping()) {
             // Does it have custom mapping?
-            String propType = scpm.getGrailsProperty().getTypePropertyName();
             Map<String, Object> propOptions = new LinkedHashMap<String, Object>();
-            // Add the custom mapping (searchable static property in domain model)
             propOptions.putAll(scpm.getAttributes());
-            if (!(SUPPORTED_FORMAT.contains(scpm.getGrailsProperty().getTypePropertyName()))) {
-                // Handle embedded persistent collections, ie List<String> listOfThings
-                if (scpm.getGrailsProperty().isBasicCollectionType()) {
-                    String basicType = ClassUtils.getShortName(scpm.getGrailsProperty().getReferencedPropertyType()).toLowerCase(Locale.ENGLISH);
-                    if (SUPPORTED_FORMAT.contains(basicType)) {
-                        propType = basicType;
+            String propType = (String) propOptions.get("type"); //won't be null if defined
+            if (propType == null) {
+                propType = scpm.getGrailsProperty().getTypePropertyName();
+                // Add the custom mapping (searchable static property in domain model)
+                if (!(SUPPORTED_FORMAT.contains(scpm.getGrailsProperty().getTypePropertyName()))) {
+                    // Handle embedded persistent collections, ie List<String> listOfThings
+                    if (scpm.getGrailsProperty().isBasicCollectionType()) {
+                        String basicType = ClassUtils.getShortName(scpm.getGrailsProperty().getReferencedPropertyType()).toLowerCase(Locale.ENGLISH);
+                        if (SUPPORTED_FORMAT.contains(basicType)) {
+                            propType = basicType;
+                        }
+                    // Handle arrays
+                    } else if (scpm.getGrailsProperty().getReferencedPropertyType().isArray()) {
+                        String basicType = ClassUtils.getShortName(scpm.getGrailsProperty().getReferencedPropertyType().getComponentType()).toLowerCase(Locale.ENGLISH);
+                        if (SUPPORTED_FORMAT.contains(basicType)) {
+                            propType = basicType;
+                        }
+                    } else if (isDateType(scpm.getGrailsProperty().getReferencedPropertyType())) {
+                        propType = "date";
+                    } else if (GrailsClassUtils.isJdk5Enum(scpm.getGrailsProperty().getReferencedPropertyType())) {
+                        propType = "string";
+                    } else if (scpm.getConverter() != null) {
+                        // Use 'string' type for properties with custom converter.
+                        // Arrays are automatically resolved by ElasticSearch, so no worries.
+                        propType = "string";
+                    } else {
+                        propType = "object";
                     }
-                // Handle arrays
-                } else if (scpm.getGrailsProperty().getReferencedPropertyType().isArray()) {
-                    String basicType = ClassUtils.getShortName(scpm.getGrailsProperty().getReferencedPropertyType().getComponentType()).toLowerCase(Locale.ENGLISH);
-                    if (SUPPORTED_FORMAT.contains(basicType)) {
-                        propType = basicType;
+
+                    //TODO: In the case of an implicit component or reference, perhaps we can look this up?
+                    // That means we can get this goodness without explicitly specifying component/reference.
+                    if (scpm.getReference() != null) {
+                        propType = "object";      // fixme: think about composite ids.
+                    } else if (scpm.isComponent()) {
+                        // Proceed with nested mapping.
+                        // todo limit depth to avoid endless recursion?
+                        propType = "object";
+                        //noinspection unchecked
+                        propOptions.putAll((Map<String, Object>)
+                                (getElasticMapping(scpm.getComponentPropertyMapping()).values().iterator().next()));
                     }
-                } else if (isDateType(scpm.getGrailsProperty().getReferencedPropertyType())) {
-                    propType = "date";
-                } else if (GrailsClassUtils.isJdk5Enum(scpm.getGrailsProperty().getReferencedPropertyType())) {
-                    propType = "string";
-                } else if (scpm.getConverter() != null) {
-                    // Use 'string' type for properties with custom converter.
-                    // Arrays are automatically resolved by ElasticSearch, so no worries.
-                    propType = "string";
-                } else {
-                    propType = "object";
-                }
 
-                if (scpm.getReference() != null) {
-                    propType = "object";      // fixme: think about composite ids.
-                } else if (scpm.isComponent()) {
-                    // Proceed with nested mapping.
-                    // todo limit depth to avoid endless recursion?
-                    propType = "object";
-                    //noinspection unchecked
-                    propOptions.putAll((Map<String, Object>)
-                            (getElasticMapping(scpm.getComponentPropertyMapping()).values().iterator().next()));
-
-                }
-
-                // Once it is an object, we need to add id & class mappings, otherwise
-                // ES will fail with NullPointer.
-                if (scpm.isComponent() || scpm.getReference() != null) {
-                    @SuppressWarnings({"unchecked"})
-                    Map<String, Object> props = (Map<String, Object>) propOptions.get("properties");
-                    if (props == null) {
-                        props = new LinkedHashMap<String, Object>();
-                        propOptions.put("properties", props);
+                    // Once it is an object, we need to add id & class mappings, otherwise
+                    // ES will fail with NullPointer.
+                    if (scpm.isComponent() || scpm.getReference() != null) {
+                        @SuppressWarnings({"unchecked"})
+                        Map<String, Object> props = (Map<String, Object>) propOptions.get("properties");
+                        if (props == null) {
+                            props = new LinkedHashMap<String, Object>();
+                            propOptions.put("properties", props);
+                        }
+                        props.put("id", defaultDescriptor("long", "no", true));
+                        props.put("class", defaultDescriptor("string", "no", true));
+                        props.put("ref", defaultDescriptor("string", "no", true));
                     }
-                    props.put("id", defaultDescriptor("long", "no", true));
-                    props.put("class", defaultDescriptor("string", "no", true));
-                    props.put("ref", defaultDescriptor("string", "no", true));
                 }
+                propOptions.put("type", propType);
             }
-            propOptions.put("type", propType);
             // See http://www.elasticsearch.com/docs/elasticsearch/mapping/all_field/
             if (!propType.equals("object") && scm.isAll()) {
                 // does it make sense to include objects into _all?
