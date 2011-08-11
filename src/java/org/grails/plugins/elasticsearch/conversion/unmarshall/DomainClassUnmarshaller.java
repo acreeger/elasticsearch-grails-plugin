@@ -75,6 +75,7 @@ public class DomainClassUnmarshaller {
                 unmarshallingContext.resetContext();
             }
             // todo manage read-only transient properties...
+            if (LOG.isTraceEnabled()) LOG.trace("buildResults: Binding the following props onto the instance '" + instance + "': " + rebuiltProperties);
             bind.invoke(instance, "bind", new Object[] { instance, rebuiltProperties });
 
             results.add(instance);

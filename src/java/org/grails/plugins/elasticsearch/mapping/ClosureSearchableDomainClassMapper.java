@@ -20,7 +20,6 @@ import groovy.lang.Closure;
 import groovy.lang.GroovyObjectSupport;
 import groovy.util.ConfigObject;
 import org.codehaus.groovy.grails.commons.*;
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -103,6 +102,8 @@ class ClosureSearchableDomainClassMapper extends GroovyObjectSupport {
                     // We create a temporary dummy GrailsDomainClass instance for this abstract class
                     superDomainClass = new DefaultGrailsDomainClass(currentClass);
                 } else {
+                    // AC: This will break if superDomainClass != null || currentClass isn't abstract
+                    // AC: Perhaps this is a bug?
                     // If superDomainClass is null & not abstract, then we won't process this class
                     break;
                 }
